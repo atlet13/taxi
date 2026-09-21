@@ -12,47 +12,69 @@
 
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body, html { height: 100%; width: 100%; overflow: hidden; background: #121212; color: #fff; }
+        body, html { height: 100%; width: 100%; overflow: hidden; background: #121212; color: #fff; position: relative; }
 
-        /* Контейнер карти */
-        #map-container { position: relative; width: 100%; height: 46vh; background: #e5e3df; }
-        #map { width: 100%; height: 100%; }
+        /* Контейнер карти на весь екран */
+        #map-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+        #map { width: 100%; height: 100%; background: #e5e3df; }
 
-        /* Кнопка GPS на карті */
+        /* Кнопка GPS */
         .map-gps-btn {
             position: absolute;
-            bottom: 15px;
+            top: 15px;
             right: 15px;
             z-index: 1000;
             background: #ffffff;
             border: 2px solid #28a745;
             color: #28a745;
-            width: 48px;
-            height: 48px;
+            width: 46px;
+            height: 46px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 22px;
-            box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+            box-shadow: 0 4px 14px rgba(0,0,0,0.3);
             cursor: pointer;
-            transition: transform 0.1s, background 0.2s;
         }
-        .map-gps-btn:active { transform: scale(0.92); background: #f0f0f0; }
+        .map-gps-btn:active { transform: scale(0.92); }
 
-        /* Панель керування */
+        /* Панель керування (Шторка) */
         .panel {
-            height: 54vh;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1001;
             background: #1e1e1e;
-            padding: 12px 14px;
-            border-top-left-radius: 20px;
-            border-top-right-radius: 20px;
-            box-shadow: 0 -6px 20px rgba(0,0,0,0.6);
+            padding: 10px 14px 16px 14px;
+            border-top-left-radius: 22px;
+            border-top-right-radius: 22px;
+            box-shadow: 0 -8px 25px rgba(0,0,0,0.7);
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            max-height: 80vh;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
-            position: relative;
-            z-index: 1001;
+        }
+
+        /* Згорнутий стан шторки */
+        .panel.collapsed {
+            transform: translateY(calc(100% - 62px));
+        }
+
+        /* Плашка-ручка для згортання */
+        .panel-handle-area {
+            width: 100%;
+            padding: 6px 0 10px 0;
+            display: flex;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .panel-handle {
+            width: 42px;
+            height: 5px;
+            background: #555;
+            border-radius: 3px;
         }
 
         /* Шорткати */
@@ -61,7 +83,7 @@
             gap: 8px;
             overflow-x: auto;
             padding-bottom: 6px;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
             scrollbar-width: none;
         }
         .shortcuts::-webkit-scrollbar { display: none; }
@@ -108,8 +130,7 @@
         /* Підказки */
         .suggestions {
             position: absolute;
-            top: 100%;
-            left: 0; right: 0;
+            top: 100%; left: 0; right: 0;
             background: #282828;
             border: 1px solid #ffcc00;
             border-radius: 8px;
@@ -137,6 +158,8 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
+            margin-top: 4px;
+            margin-bottom: 8px;
         }
         .price-main { font-size: 22px; font-weight: 800; color: #ffcc00; }
         .price-info { text-align: right; }
@@ -145,7 +168,7 @@
 
         .comment-input {
             width: 100%; background: #282828; border: 1px solid #383838; color: #fff;
-            padding: 8px 10px; border-radius: 8px; outline: none; font-size: 12.5px; margin-top: 4px;
+            padding: 8px 10px; border-radius: 8px; outline: none; font-size: 12.5px; margin-top: 4px; margin-bottom: 6px;
         }
 
         .btn-order {
@@ -160,11 +183,16 @@
 
     <div id="map-container">
         <div id="map"></div>
-        <button class="map-gps-btn" onclick="useGPS()" title="Моя точна геопозиція">🎯</button>
+        <button class="map-gps-btn" onclick="useGPS()" title="Моя геопозиція">🎯</button>
     </div>
 
-    <div class="panel">
-        <div>
+    <div class="panel" id="mainPanel" onclick="onPanelClick(event)">
+        <!-- Ручка згортання -->
+        <div class="panel-handle-area" onclick="togglePanel(event)">
+            <div class="panel-handle"></div>
+        </div>
+
+        <div id="panelContent">
             <!-- Шорткати -->
             <div class="shortcuts">
                 <div class="chip" onclick="selectShortcut('Залізничний вокзал, Миронівка')">🚆 Вокзал</div>
@@ -180,7 +208,7 @@
                 <label>1. Звідки (Точка А)</label>
                 <div class="input-box active" id="boxA" onclick="setActivePoint('A')">
                     <div class="dot dot-a"></div>
-                    <input type="text" id="inputA" placeholder="Клацніть на карту або введіть вулицю" oninput="onTyping('A')" onkeydown="if(event.key==='Enter') hideKeyboard()" autocomplete="off">
+                    <input type="text" id="inputA" placeholder="Введіть адресу або оберіть на карті" oninput="onTyping('A')" onchange="onManualInputChange('A')" onkeydown="if(event.key==='Enter') hideKeyboard()" autocomplete="off">
                 </div>
                 <div id="sugA" class="suggestions"></div>
             </div>
@@ -190,23 +218,23 @@
                 <label>2. Куди (Точка Б)</label>
                 <div class="input-box" id="boxB" onclick="setActivePoint('B')">
                     <div class="dot dot-b"></div>
-                    <input type="text" id="inputB" placeholder="Клацніть на карту або введіть вулицю" oninput="onTyping('B')" onkeydown="if(event.key==='Enter') hideKeyboard()" autocomplete="off">
+                    <input type="text" id="inputB" placeholder="Введіть адресу або оберіть на карті" oninput="onTyping('B')" onchange="onManualInputChange('B')" onkeydown="if(event.key==='Enter') hideKeyboard()" autocomplete="off">
                 </div>
                 <div id="sugB" class="suggestions"></div>
             </div>
 
-            <input type="text" id="comment" class="comment-input" placeholder="Коментар (під'їзд, підганяти зараз тощо)" onkeydown="if(event.key==='Enter') hideKeyboard()">
-        </div>
+            <input type="text" id="comment" class="comment-input" placeholder="Коментар водію (під'їзд, дитяче крісло тощо)" onkeydown="if(event.key==='Enter') hideKeyboard()">
 
-        <div class="price-card">
-            <div class="price-main" id="priceDisplay">60 грн</div>
-            <div class="price-info">
-                <div class="info-dist" id="distDisplay">По місту / району</div>
-                <div class="info-time" id="timeDisplay">Оберіть 2 точки</div>
+            <div class="price-card">
+                <div class="price-main" id="priceDisplay">60 грн</div>
+                <div class="price-info">
+                    <div class="info-dist" id="distDisplay">По місту / району</div>
+                    <div class="info-time" id="timeDisplay">Вкажіть адреси</div>
+                </div>
             </div>
-        </div>
 
-        <button class="btn-order" onclick="sendOrder()">Замовити таксі</button>
+            <button class="btn-order" onclick="sendOrder()">Замовити таксі</button>
+        </div>
     </div>
 
     <script>
@@ -216,26 +244,22 @@
         const defaultLat = 49.6581;
         const defaultLng = 30.9926;
 
-        // Ініціалізація карти з виправленням сенсорних багів
         let map = L.map('map', { 
-            zoomControl: true,
+            zoomControl: false,
             tap: false 
         }).setView([defaultLat, defaultLng], 14);
 
-        // ЧІТКА ДЕТАЛЬНА КАРТА OpenStreetMap (з будинками та вулицями)
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '&copy; OpenStreetMap',
-            keepBuffer: 3
+        // КАРТА GOOGLE MAPS (Стандартна кольорова карта Google)
+        L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+            maxZoom: 20,
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+            attribution: '&copy; Google Maps'
         }).addTo(map);
 
-        // Автовиправлення розмірів карти при запуску
         setTimeout(() => { map.invalidateSize(); }, 300);
-        window.addEventListener('resize', () => map.invalidateSize());
 
         let markerA = null;
         let markerB = null;
-        let gpsMarker = null;
         let gpsAccuracyCircle = null;
         let routePolyline = null;
         let activePoint = 'A';
@@ -246,7 +270,6 @@
         let rate = 40;
         let typingTimer;
 
-        // Маркери
         const iconA = L.icon({
             iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
             shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
@@ -257,6 +280,39 @@
             iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
             shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
             iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
+        });
+
+        // Управління згортанням шторки
+        function collapsePanel() {
+            document.getElementById('mainPanel').classList.add('collapsed');
+        }
+
+        function expandPanel() {
+            document.getElementById('mainPanel').classList.remove('collapsed');
+        }
+
+        function togglePanel(e) {
+            if(e) e.stopPropagation();
+            let p = document.getElementById('mainPanel');
+            if(p.classList.contains('collapsed')) expandPanel();
+            else collapsePanel();
+        }
+
+        function onPanelClick(e) {
+            let p = document.getElementById('mainPanel');
+            if(p.classList.contains('collapsed')) {
+                expandPanel();
+            }
+        }
+
+        // Автозгортання при русі по карті
+        map.on('dragstart', collapsePanel);
+        map.on('zoomstart', collapsePanel);
+
+        map.on('click', function(e) {
+            hideKeyboard();
+            setPoint(activePoint, e.latlng.lat, e.latlng.lng, true);
+            expandPanel(); // Розгортаємо назад після вибору точки
         });
 
         function hideKeyboard() {
@@ -300,11 +356,6 @@
                 document.getElementById('boxA').classList.remove('active');
             }
         }
-
-        map.on('click', function(e) {
-            hideKeyboard();
-            setPoint(activePoint, e.latlng.lat, e.latlng.lng, true);
-        });
 
         async function setPoint(type, lat, lng, reverseGeocode = true) {
             if(type === 'A') {
@@ -351,6 +402,23 @@
             return `Точка (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
         }
 
+        // Обробка ручного введення тексту (якщо клієнт просто друкує адресу)
+        async function onManualInputChange(type) {
+            let val = type === 'A' ? document.getElementById('inputA').value.trim() : document.getElementById('inputB').value.trim();
+            if(val.length < 2) return;
+
+            let searchQuery = val.toLowerCase().includes('обл') ? val : `${val}, Київська область`;
+            try {
+                let res = await fetchWithTimeout(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&accept-language=uk&limit=1`, { timeout: 2500 });
+                let data = await res.json();
+                if(data && data.length > 0) {
+                    let lat = parseFloat(data[0].lat);
+                    let lng = parseFloat(data[0].lon);
+                    setPoint(type, lat, lng, false);
+                }
+            } catch(e){}
+        }
+
         function onTyping(type) {
             clearTimeout(typingTimer);
             typingTimer = setTimeout(() => {
@@ -361,11 +429,7 @@
         }
 
         async function fetchSuggestions(type, query) {
-            let searchQuery = query;
-            if(!query.toLowerCase().includes('обл') && !query.toLowerCase().includes('район')) {
-                searchQuery = `${query}, Київська область`;
-            }
-
+            let searchQuery = query.toLowerCase().includes('обл') ? query : `${query}, Київська область`;
             try {
                 let viewbox = '30.60,49.82,31.30,49.48';
                 let res = await fetchWithTimeout(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&viewbox=${viewbox}&accept-language=uk&limit=5`, { timeout: 2500 });
@@ -380,7 +444,8 @@
                         div.className = 'suggestion-item';
                         let cleanName = item.display_name.split(',').slice(0, 3).join(',').trim();
                         div.innerText = cleanName;
-                        div.onclick = () => {
+                        div.onclick = (e) => {
+                            e.stopPropagation();
                             hideKeyboard();
                             let lat = parseFloat(item.lat);
                             let lng = parseFloat(item.lon);
@@ -429,8 +494,8 @@
 
                     if(routePolyline) map.removeLayer(routePolyline);
                     let coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
-                    routePolyline = L.polyline(coords, {color: '#007aff', weight: 5, opacity: 0.85, lineCap: 'round'}).addTo(map);
-                    map.fitBounds(routePolyline.getBounds(), {padding: [35, 35]});
+                    routePolyline = L.polyline(coords, {color: '#4285F4', weight: 6, opacity: 0.9, lineCap: 'round'}).addTo(map);
+                    map.fitBounds(routePolyline.getBounds(), {padding: [50, 50]});
                     routeSuccess = true;
                 }
             } catch(e){}
@@ -440,8 +505,8 @@
                 durationMin = Math.max(4, Math.round(distKm * 2));
 
                 if(routePolyline) map.removeLayer(routePolyline);
-                routePolyline = L.polyline([[posA.lat, posA.lng], [posB.lat, posB.lng]], {color: '#007aff', weight: 4, dashArray: '8, 8', opacity: 0.8}).addTo(map);
-                map.fitBounds(routePolyline.getBounds(), {padding: [35, 35]});
+                routePolyline = L.polyline([[posA.lat, posA.lng], [posB.lat, posB.lng]], {color: '#4285F4', weight: 4, dashArray: '8, 8', opacity: 0.8}).addTo(map);
+                map.fitBounds(routePolyline.getBounds(), {padding: [50, 50]});
             }
 
             let textA = document.getElementById('inputA').value.toLowerCase();
@@ -476,11 +541,10 @@
             } catch(e){}
         }
 
-        // НАЙТОЧНІША ГЕОЛОКАЦІЯ
         function useGPS() {
             hideKeyboard();
             if (!navigator.geolocation) {
-                alert("Ваш пристрій не підтримує геолокацію");
+                alert("Пристрій не підтримує геолокацію");
                 return;
             }
 
@@ -488,15 +552,14 @@
                 async (pos) => {
                     let lat = pos.coords.latitude;
                     let lng = pos.coords.longitude;
-                    let accuracy = pos.coords.accuracy; // Точність у метрах
+                    let accuracy = pos.coords.accuracy;
 
-                    // Відображення кола точності GPS
                     if (gpsAccuracyCircle) map.removeLayer(gpsAccuracyCircle);
                     gpsAccuracyCircle = L.circle([lat, lng], {
                         radius: accuracy,
-                        color: '#007aff',
-                        fillColor: '#007aff',
-                        fillOpacity: 0.12,
+                        color: '#4285F4',
+                        fillColor: '#4285F4',
+                        fillOpacity: 0.15,
                         weight: 1
                     }).addTo(map);
 
@@ -504,17 +567,9 @@
                     await setPoint('A', lat, lng, true);
                 },
                 (err) => {
-                    let msg = "Не вдалося отримати точну геолокацію.";
-                    if (err.code === 1) msg = "Дозвольте доступ до геолокації у налаштуваннях вашого телефону / Telegram.";
-                    else if (err.code === 2) msg = "GPS недоступний. Перевірте, чи увімкнена геопозиція у підшторці смартфона.";
-                    else if (err.code === 3) msg = "Час очікування GPS вичерпано. Спробуйте ще раз на відкритому просторі.";
-                    alert(msg);
+                    alert("Не вдалося отримати GPS. Перевірте, чи увімкнено геопозицію в телефоні.");
                 },
-                {
-                    enableHighAccuracy: true, // Вмикає супутниковий GPS модуль
-                    timeout: 10000,           // 10 секунд чекаємо супутники
-                    maximumAge: 0             // Не використовувати застарілий кеш
-                }
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
             );
         }
 
