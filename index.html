@@ -3,47 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Таксі Миронівка</title>
+    <title>Таксі Миронівка та Район</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- Картографічна бібліотека Leaflet (як в Uklon/Bolt) -->
+    
+    <!-- Leaflet CSS & JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body, html { height: 100%; width: 100%; overflow: hidden; background: #121212; color: #fff; }
 
-        /* Карта на половину екрана */
-        #map { width: 100%; height: 48vh; }
+        /* Контейнер карти */
+        #map-container { position: relative; width: 100%; height: 44vh; }
+        #map { width: 100%; height: 100%; background: #121212; }
 
-        /* Панель під картою */
+        /* Кнопка GPS на карті */
+        .map-gps-btn {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            z-index: 1000;
+            background: #1e1e1e;
+            border: 1px solid #ffcc00;
+            color: #ffcc00;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            cursor: pointer;
+        }
+        .map-gps-btn:active { transform: scale(0.92); }
+
+        /* Панель керування */
         .panel {
-            height: 52vh;
+            height: 56vh;
             background: #1e1e1e;
             padding: 14px;
-            border-top-left-radius: 20px;
-            border-top-right-radius: 20px;
-            box-shadow: 0 -4px 15px rgba(0,0,0,0.5);
+            border-top-left-radius: 22px;
+            border-top-right-radius: 22px;
+            box-shadow: 0 -6px 20px rgba(0,0,0,0.6);
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             position: relative;
-            z-index: 1000;
+            z-index: 1001;
         }
 
-        .input-group { margin-bottom: 8px; }
-        .input-group label { font-size: 11px; color: #aaa; font-weight: bold; text-transform: uppercase; }
+        /* Горизонтальні шорткати */
+        .shortcuts {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 6px;
+            margin-bottom: 6px;
+            scrollbar-width: none;
+        }
+        .shortcuts::-webkit-scrollbar { display: none; }
+        .chip {
+            background: #2a2a2a;
+            border: 1px solid #3c3c3c;
+            color: #ddd;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .chip:active { background: #ffcc00; color: #000; font-weight: bold; }
+
+        /* Поля введення */
+        .input-group { margin-bottom: 8px; position: relative; }
+        .input-group label { font-size: 10px; color: #888; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; }
 
         .input-box {
             display: flex;
             align-items: center;
-            background: #2a2a2a;
-            border: 2px solid #333;
-            border-radius: 10px;
-            padding: 8px 12px;
+            background: #282828;
+            border: 1.5px solid #383838;
+            border-radius: 12px;
+            padding: 9px 12px;
             margin-top: 3px;
+            transition: border-color 0.2s;
         }
-
-        .input-box.active { border-color: #ffcc00; }
+        .input-box.active { border-color: #ffcc00; background: #2f2f2f; }
 
         .input-box input {
             background: transparent;
@@ -54,53 +102,92 @@
             outline: none;
         }
 
-        .dot { width: 12px; height: 12px; border-radius: 50%; margin-right: 10px; flex-shrink: 0; }
-        .dot-a { background: #28a745; }
-        .dot-b { background: #dc3545; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; margin-right: 10px; flex-shrink: 0; }
+        .dot-a { background: #28a745; box-shadow: 0 0 8px rgba(40, 167, 69, 0.6); }
+        .dot-b { background: #dc3545; box-shadow: 0 0 8px rgba(220, 53, 69, 0.6); }
 
-        .gps-btn {
-            background: #2a2a2a; border: 1px solid #444; color: #ffcc00;
-            padding: 4px 10px; border-radius: 6px; font-size: 11px; cursor: pointer; font-weight: bold;
-        }
-
-        .price-card {
-            background: #2a2a2a;
+        /* Автопідказки адрес */
+        .suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #282828;
             border: 1px solid #ffcc00;
-            border-radius: 12px;
-            padding: 8px;
-            text-align: center;
+            border-radius: 10px;
+            max-height: 150px;
+            overflow-y: auto;
+            z-index: 2500;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.7);
+            display: none;
         }
-
-        .price-val { font-size: 22px; font-weight: bold; color: #ffcc00; }
-        .price-sub { font-size: 11px; color: #aaa; }
-
-        .btn-order {
-            background: #ffcc00; color: #000; font-size: 16px; font-weight: bold;
-            padding: 14px; border: none; border-radius: 12px; width: 100%; cursor: pointer;
+        .suggestion-item {
+            padding: 10px 12px;
+            font-size: 13px;
+            border-bottom: 1px solid #353535;
+            cursor: pointer;
+            color: #eee;
+            line-height: 1.3;
         }
+        .suggestion-item:last-child { border-bottom: none; }
+        .suggestion-item:hover, .suggestion-item:active { background: #383838; color: #ffcc00; }
+
+        /* Картка ціни */
+        .price-card {
+            background: linear-gradient(135deg, #2a2a2a 0%, #222222 100%);
+            border: 1px solid #ffcc00;
+            border-radius: 14px;
+            padding: 10px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .price-main { font-size: 24px; font-weight: 800; color: #ffcc00; }
+        .price-info { text-align: right; }
+        .info-dist { font-size: 13px; font-weight: bold; color: #fff; }
+        .info-time { font-size: 11px; color: #aaa; margin-top: 2px; }
 
         .comment-input {
-            width: 100%; background: #2a2a2a; border: 1px solid #333; color: #fff;
-            padding: 8px 12px; border-radius: 8px; outline: none; font-size: 13px; margin-top: 4px;
+            width: 100%; background: #282828; border: 1px solid #383838; color: #fff;
+            padding: 9px 12px; border-radius: 10px; outline: none; font-size: 13px; margin-top: 6px;
         }
+
+        .btn-order {
+            background: #ffcc00; color: #000; font-size: 16px; font-weight: 700;
+            padding: 14px; border: none; border-radius: 12px; width: 100%; cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255, 204, 0, 0.3);
+            transition: background 0.2s;
+        }
+        .btn-order:active { background: #e6b800; transform: scale(0.99); }
     </style>
 </head>
 <body>
 
-    <div id="map"></div>
+    <div id="map-container">
+        <div id="map"></div>
+        <button class="map-gps-btn" onclick="useGPS()" title="Моє місцезнаходження">🎯</button>
+    </div>
 
     <div class="panel">
         <div>
+            <!-- Шорткати -->
+            <div class="shortcuts">
+                <div class="chip" onclick="selectShortcut('Залізничний вокзал, Миронівка')">🚆 Вокзал</div>
+                <div class="chip" onclick="selectShortcut('Лікарня, Миронівка')">🏥 Лікарня</div>
+                <div class="chip" onclick="selectShortcut('Центр, Миронівка')">🏛 Центр</div>
+                <div class="chip" onclick="selectShortcut('с. Владиславка')">🏡 Владиславка</div>
+                <div class="chip" onclick="selectShortcut('с. Карапиші')">🏡 Карапиші</div>
+                <div class="chip" onclick="selectShortcut('с. Росава')">🏡 Росава</div>
+            </div>
+
             <!-- ТОЧКА А -->
             <div class="input-group">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <label>1. Звідки (Точка А)</label>
-                    <button class="gps-btn" onclick="useGPS()">📍 Моє GPS</button>
-                </div>
+                <label>1. Звідки (Точка А)</label>
                 <div class="input-box active" id="boxA" onclick="setActivePoint('A')">
                     <div class="dot dot-a"></div>
-                    <input type="text" id="inputA" placeholder="Клацніть на карті або введіть" onchange="addressChanged('A')">
+                    <input type="text" id="inputA" placeholder="Оберіть на карті або введіть вулицю / село" oninput="onTyping('A')" autocomplete="off">
                 </div>
+                <div id="sugA" class="suggestions"></div>
             </div>
 
             <!-- ТОЧКА Б -->
@@ -108,18 +195,20 @@
                 <label>2. Куди (Точка Б)</label>
                 <div class="input-box" id="boxB" onclick="setActivePoint('B')">
                     <div class="dot dot-b"></div>
-                    <input type="text" id="inputB" placeholder="Клацніть на карті або введіть" onchange="addressChanged('B')">
+                    <input type="text" id="inputB" placeholder="Оберіть на карті або введіть вулицю / село" oninput="onTyping('B')" autocomplete="off">
                 </div>
+                <div id="sugB" class="suggestions"></div>
             </div>
 
-            <!-- КОМЕНТАР -->
-            <input type="text" id="comment" class="comment-input" placeholder="Коментар водію (під'їзд, багаж)">
+            <input type="text" id="comment" class="comment-input" placeholder="Коментар водію (напр. 2 під'їзд, з дитиною)">
         </div>
 
-        <!-- КАРТКА ЦІНИ -->
         <div class="price-card">
-            <div class="price-val" id="priceDisplay">60 грн</div>
-            <div class="price-sub" id="detailsDisplay">Поставте мітки для точного розрахунку</div>
+            <div class="price-main" id="priceDisplay">60 грн</div>
+            <div class="price-info">
+                <div class="info-dist" id="distDisplay">По місту / району</div>
+                <div class="info-time" id="timeDisplay">Вкажіть маршрут</div>
+            </div>
         </div>
 
         <button class="btn-order" onclick="sendOrder()">Замовити таксі</button>
@@ -129,12 +218,15 @@
         let tg = window.Telegram.WebApp;
         tg.expand();
 
-        // Центр Миронівки
         const defaultLat = 49.6581;
         const defaultLng = 30.9926;
 
-        let map = L.map('map', { zoomControl: false }).setView([defaultLat, defaultLng], 14);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+        let map = L.map('map', { zoomControl: false }).setView([defaultLat, defaultLng], 13);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            maxZoom: 19,
+            subdomains: 'abcd'
+        }).addTo(map);
 
         let markerA = null;
         let markerB = null;
@@ -143,9 +235,10 @@
 
         let price = 60;
         let distanceStr = "По місту";
+        let durationStr = "~5 хв";
         let rate = 40;
+        let typingTimer;
 
-        // Іконки міток
         const iconA = L.icon({
             iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
             shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
@@ -169,7 +262,6 @@
             }
         }
 
-        // Клік по карті переставляє активну мітку
         map.on('click', function(e) {
             setPoint(activePoint, e.latlng.lat, e.latlng.lng, true);
         });
@@ -197,45 +289,87 @@
                     document.getElementById('inputB').value = addr;
                 }
             }
+            hideSuggestions();
             calculateRoute();
         }
 
-        // Пошук назви вулиці за координатами
         async function reverseGeo(lat, lng) {
             try {
                 let res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
                 let data = await res.json();
                 if(data && data.address) {
-                    let road = data.address.road || data.address.pedestrian || data.address.suburb || data.address.village || "";
+                    let village = data.address.village || data.address.town || data.address.city || "";
+                    let road = data.address.road || data.address.pedestrian || "";
                     let house = data.address.house_number || "";
-                    if(road) return `${road} ${house}`.trim();
+                    
+                    let parts = [];
+                    if(village && village !== "Миронівка") parts.push(`с. ${village}`);
+                    if(road) parts.push(`${road} ${house}`.trim());
+                    if(parts.length > 0) return parts.join(', ');
                 }
             } catch(e){}
             return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
         }
 
-        // Введення адреси текстом
-        async function addressChanged(type) {
-            let text = type === 'A' ? document.getElementById('inputA').value : document.getElementById('inputB').value;
-            if(!text) return;
-            let search = text.toLowerCase().includes('миронівк') ? text : `Миронівка, ${text}`;
+        function onTyping(type) {
+            clearTimeout(typingTimer);
+            typingTimer = setTimeout(() => {
+                let val = type === 'A' ? document.getElementById('inputA').value.trim() : document.getElementById('inputB').value.trim();
+                if(val.length < 2) return hideSuggestions();
+                fetchSuggestions(type, val);
+            }, 350);
+        }
+
+        async function fetchSuggestions(type, query) {
+            let searchQuery = query;
+            if(!query.toLowerCase().includes('обл') && !query.toLowerCase().includes('район')) {
+                searchQuery = `${query}, Київська область`;
+            }
+
             try {
-                let res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(search)}`);
+                let viewbox = '30.60,49.82,31.30,49.48';
+                let res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&viewbox=${viewbox}&limit=5`);
                 let data = await res.json();
+                let sugBox = document.getElementById(type === 'A' ? 'sugA' : 'sugB');
+                sugBox.innerHTML = '';
+
                 if(data && data.length > 0) {
-                    let lat = parseFloat(data[0].lat);
-                    let lng = parseFloat(data[0].lon);
-                    setPoint(type, lat, lng, false);
-                    map.panTo([lat, lng]);
+                    sugBox.style.display = 'block';
+                    data.forEach(item => {
+                        let div = document.createElement('div');
+                        div.className = 'suggestion-item';
+                        
+                        let parts = item.display_name.split(',');
+                        let cleanName = parts.slice(0, 3).join(',').trim();
+
+                        div.innerText = cleanName;
+                        div.onclick = () => {
+                            let lat = parseFloat(item.lat);
+                            let lng = parseFloat(item.lon);
+                            if(type === 'A') document.getElementById('inputA').value = cleanName;
+                            else document.getElementById('inputB').value = cleanName;
+                            setPoint(type, lat, lng, false);
+                            map.flyTo([lat, lng], 15);
+                            hideSuggestions();
+                        };
+                        sugBox.appendChild(div);
+                    });
+                } else {
+                    hideSuggestions();
                 }
             } catch(e){}
         }
 
-        // Побудова лінії маршруту та розрахунок ціни
+        function hideSuggestions() {
+            document.getElementById('sugA').style.display = 'none';
+            document.getElementById('sugB').style.display = 'none';
+        }
+
         async function calculateRoute() {
             if(!markerA || !markerB) {
                 document.getElementById('priceDisplay').innerText = "60 грн";
-                document.getElementById('detailsDisplay').innerText = "Поставте обидві мітки на карті";
+                document.getElementById('distDisplay').innerText = "По місту / району";
+                document.getElementById('timeDisplay').innerText = "Оберіть 2 точки";
                 return;
             }
 
@@ -248,21 +382,26 @@
                 if(data.routes && data.routes.length > 0) {
                     let route = data.routes[0];
                     let distKm = (route.distance / 1000).toFixed(1);
+                    let durationMin = Math.max(3, Math.round(route.duration / 60));
 
-                    // Малювання жовтої лінії
                     if(routePolyline) map.removeLayer(routePolyline);
                     let coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
-                    routePolyline = L.polyline(coords, {color: '#ffcc00', weight: 5, opacity: 0.9}).addTo(map);
+                    routePolyline = L.polyline(coords, {color: '#ffcc00', weight: 5, opacity: 0.9, lineCap: 'round'}).addTo(map);
                     map.fitBounds(routePolyline.getBounds(), {padding: [30, 30]});
 
+                    let textA = document.getElementById('inputA').value.toLowerCase();
                     let textB = document.getElementById('inputB').value.toLowerCase();
-                    let isOutside = textB.includes('с.') || textB.includes('село') || distKm > 7;
+                    
+                    let isOutside = textA.includes('с.') || textB.includes('с.') || textA.includes('село') || textB.includes('село') || distKm > 6;
+                    
                     rate = isOutside ? 60 : 40;
                     price = Math.max(60, Math.round(distKm * rate));
                     distanceStr = `${distKm} км`;
+                    durationStr = `~${durationMin} хв у дорозі`;
 
                     document.getElementById('priceDisplay').innerText = `${price} грн`;
-                    document.getElementById('detailsDisplay').innerText = `Відстань: ${distKm} км (${rate} грн/км)`;
+                    document.getElementById('distDisplay').innerText = `${distKm} км (${rate} грн/км)`;
+                    document.getElementById('timeDisplay').innerText = durationStr;
                     return;
                 }
             } catch(e){}
@@ -270,12 +409,29 @@
             document.getElementById('priceDisplay').innerText = "60 грн";
         }
 
+        async function selectShortcut(placeName) {
+            let type = activePoint;
+            let searchQuery = placeName.includes('Миронівка') ? placeName : `${placeName}, Київська область`;
+            try {
+                let res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}`);
+                let data = await res.json();
+                if(data && data.length > 0) {
+                    let lat = parseFloat(data[0].lat);
+                    let lng = parseFloat(data[0].lon);
+                    if(type === 'A') document.getElementById('inputA').value = placeName;
+                    else document.getElementById('inputB').value = placeName;
+                    setPoint(type, lat, lng, false);
+                    map.flyTo([lat, lng], 14);
+                }
+            } catch(e){}
+        }
+
         function useGPS() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition((pos) => {
                     let lat = pos.coords.latitude;
                     let lng = pos.coords.longitude;
-                    map.setView([lat, lng], 16);
+                    map.flyTo([lat, lng], 15);
                     setPoint('A', lat, lng, true);
                 }, () => alert("Увімкніть GPS у налаштуваннях телефону"));
             }
@@ -294,6 +450,7 @@
                 pointB: addrB,
                 price: price,
                 distance: distanceStr,
+                time: durationStr,
                 rate: rate,
                 comment: comment,
                 coordsA: posA ? { lat: posA.lat, lng: posA.lng } : null,
@@ -304,7 +461,7 @@
                 tg.sendData(JSON.stringify(payload));
                 tg.close();
             } catch(e) {
-                alert("Будь ласка, відкривайте форму через кнопку «🚕 Замовити таксі» внизу чату.");
+                alert("Будь ласка, відкрийте форму через кнопку «🚕 Замовити таксі» внизу чату.");
             }
         }
     </script>
