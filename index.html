@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Замовлення Таксі</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background-color: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #000); }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; }
+        input { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 8px; }
+        button { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .btn-gps { background-color: #28a745; color: white; margin-bottom: 10px; }
+        .btn-submit { background-color: #0088cc; color: white; }
+    </style>
+</head>
+<body>
+    <h2>🚕 Замовлення таксі</h2>
+    
+    <div class="form-group">
+        <label>Точка А (Звідки):</label>
+        <button type="button" class="btn-gps" onclick="getGPS()">📍 Вказати точну геопозицію (GPS)</button>
+        <input type="text" id="pointA" placeholder="Введіть адресу або натисніть кнопку вище">
+    </div>
+
+    <div class="form-group">
+        <label>Точка Б (Куди):</label>
+        <input type="text" id="pointB" placeholder="Введіть адресу призначення">
+    </div>
+
+    <div class="form-group">
+        <label>Ваша ціна (грн):</label>
+        <input type="number" id="price" placeholder="Наприклад: 150">
+    </div>
+
+    <button type="button" class="btn-submit" onclick="sendOrder()">Замовити</button>
+
+    <script>
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+
+        let userCoords = null;
+
+        function getGPS() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        userCoords = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+                        document.getElementById('pointA').value = `GPS: ${userCoords.lat.toFixed(5)}, ${userCoords.lng.toFixed(5)}`;
+                        alert("Геопозицію успішно визначено!");
+                    },
+                    (error) => {
+                        alert("Не вдалося отримати GPS. Введіть адресу вручну.");
+                    }
+                );
+            } else {
+                alert("Ваш пристрій не підтримує геолокацію.");
+            }
+        }
+
+        function sendOrder() {
+            const pointA = document.getElementById('pointA').value;
+            const pointB = document.getElementById('pointB').value;
+            const price = document.getElementById('price').value;
+
+            if (!pointA || !pointB || !price) {
+                alert("Будь ласка, заповніть всі поля!");
+                return;
+            }
+
+            const payload = {
+                pointA: pointA,
+                pointB: pointB,
+                price: price,
+                coords: userCoords
+            };
+
+            tg.sendData(JSON.stringify(payload));
+        }
+    </script>
+</body>
+</html>
