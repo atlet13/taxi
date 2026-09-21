@@ -15,8 +15,8 @@
         body, html { height: 100%; width: 100%; overflow: hidden; background: #121212; color: #fff; }
 
         /* Контейнер карти */
-        #map-container { position: relative; width: 100%; height: 44vh; }
-        #map { width: 100%; height: 100%; background: #121212; }
+        #map-container { position: relative; width: 100%; height: 44vh; background: #1a1a1a; }
+        #map { width: 100%; height: 100%; background: #1a1a1a; }
 
         /* Кнопка GPS на карті */
         .map-gps-btn {
@@ -185,7 +185,7 @@
                 <label>1. Звідки (Точка А)</label>
                 <div class="input-box active" id="boxA" onclick="setActivePoint('A')">
                     <div class="dot dot-a"></div>
-                    <input type="text" id="inputA" placeholder="Оберіть на карті або введіть вулицю / село" oninput="onTyping('A')" autocomplete="off">
+                    <input type="text" id="inputA" placeholder="Оберіть на карті або введіть вулицю / село" oninput="onTyping('A')" onkeydown="if(event.key==='Enter') hideKeyboard()" autocomplete="off">
                 </div>
                 <div id="sugA" class="suggestions"></div>
             </div>
@@ -195,12 +195,12 @@
                 <label>2. Куди (Точка Б)</label>
                 <div class="input-box" id="boxB" onclick="setActivePoint('B')">
                     <div class="dot dot-b"></div>
-                    <input type="text" id="inputB" placeholder="Оберіть на карті або введіть вулицю / село" oninput="onTyping('B')" autocomplete="off">
+                    <input type="text" id="inputB" placeholder="Оберіть на карті або введіть вулицю / село" oninput="onTyping('B')" onkeydown="if(event.key==='Enter') hideKeyboard()" autocomplete="off">
                 </div>
                 <div id="sugB" class="suggestions"></div>
             </div>
 
-            <input type="text" id="comment" class="comment-input" placeholder="Коментар водію (напр. 2 під'їзд, з дитиною)">
+            <input type="text" id="comment" class="comment-input" placeholder="Коментар водію (напр. 2 під'їзд, з дитиною)" onkeydown="if(event.key==='Enter') hideKeyboard()">
         </div>
 
         <div class="price-card">
@@ -223,7 +223,8 @@
 
         let map = L.map('map', { zoomControl: false }).setView([defaultLat, defaultLng], 13);
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        // Головне джерело карти
+        let tileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
             maxZoom: 19,
             subdomains: 'abcd'
         }).addTo(map);
@@ -251,6 +252,46 @@
             iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
         });
 
+        // ПРИМУСОВЕ ЗАКРИТТЯ КЛАВІАТУРИ
+        function hideKeyboard() {
+            if (document.activeElement && typeof document.activeElement.blur === 'function') {
+                document.activeElement.blur();
+            }
+        }
+
+        document.addEventListener('touchstart', function(e) {
+            if (!['INPUT', 'TEXTAREA'].includes(e.target.tagName)) {
+                hideKeyboard();
+            }
+        }, { passive: true });
+
+        // Мережевий запит з таймаутом для поганого інтернету
+        async function fetchWithTimeout(resource, options = {}) {
+            const { timeout = 3000 } = options;
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), timeout);
+            try {
+                const response = await fetch(resource, { ...options, signal: controller.signal });
+                clearTimeout(id);
+                return response;
+            } catch (error) {
+                clearTimeout(id);
+                throw error;
+            }
+        }
+
+        // Обчислення прямої відстані за формулою гаверсинусів (Offline Fallback)
+        function getHaversineDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return (R * c * 1.35).toFixed(1); // Коефіцієнт 1.35 для реальних вигинів доріг
+        }
+
         function setActivePoint(pt) {
             activePoint = pt;
             if(pt === 'A') {
@@ -263,6 +304,7 @@
         }
 
         map.on('click', function(e) {
+            hideKeyboard();
             setPoint(activePoint, e.latlng.lat, e.latlng.lng, true);
         });
 
@@ -295,7 +337,7 @@
 
         async function reverseGeo(lat, lng) {
             try {
-                let res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+                let res = await fetchWithTimeout(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`, { timeout: 2500 });
                 let data = await res.json();
                 if(data && data.address) {
                     let village = data.address.village || data.address.town || data.address.city || "";
@@ -308,7 +350,7 @@
                     if(parts.length > 0) return parts.join(', ');
                 }
             } catch(e){}
-            return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+            return `Точка (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
         }
 
         function onTyping(type) {
@@ -328,7 +370,7 @@
 
             try {
                 let viewbox = '30.60,49.82,31.30,49.48';
-                let res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&viewbox=${viewbox}&limit=5`);
+                let res = await fetchWithTimeout(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&viewbox=${viewbox}&limit=5`, { timeout: 2500 });
                 let data = await res.json();
                 let sugBox = document.getElementById(type === 'A' ? 'sugA' : 'sugB');
                 sugBox.innerHTML = '';
@@ -344,6 +386,7 @@
 
                         div.innerText = cleanName;
                         div.onclick = () => {
+                            hideKeyboard();
                             let lat = parseFloat(item.lat);
                             let lng = parseFloat(item.lon);
                             if(type === 'A') document.getElementById('inputA').value = cleanName;
@@ -357,7 +400,9 @@
                 } else {
                     hideSuggestions();
                 }
-            } catch(e){}
+            } catch(e){
+                hideSuggestions();
+            }
         }
 
         function hideSuggestions() {
@@ -375,45 +420,61 @@
 
             let posA = markerA.getLatLng();
             let posB = markerB.getLatLng();
+            let distKm = 0;
+            let durationMin = 0;
+            let routeSuccess = false;
 
+            // 1. Пробуємо побудувати точний маршрут через онлайн API з таймаутом 3 секунди
             try {
-                let res = await fetch(`https://router.project-osrm.org/route/v1/driving/${posA.lng},${posA.lat};${posB.lng},${posB.lat}?overview=full&geometries=geojson`);
+                let res = await fetchWithTimeout(`https://router.project-osrm.org/route/v1/driving/${posA.lng},${posA.lat};${posB.lng},${posB.lat}?overview=full&geometries=geojson`, { timeout: 3000 });
                 let data = await res.json();
                 if(data.routes && data.routes.length > 0) {
                     let route = data.routes[0];
-                    let distKm = (route.distance / 1000).toFixed(1);
-                    let durationMin = Math.max(3, Math.round(route.duration / 60));
+                    distKm = (route.distance / 1000).toFixed(1);
+                    durationMin = Math.max(3, Math.round(route.duration / 60));
 
                     if(routePolyline) map.removeLayer(routePolyline);
                     let coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
                     routePolyline = L.polyline(coords, {color: '#ffcc00', weight: 5, opacity: 0.9, lineCap: 'round'}).addTo(map);
                     map.fitBounds(routePolyline.getBounds(), {padding: [30, 30]});
-
-                    let textA = document.getElementById('inputA').value.toLowerCase();
-                    let textB = document.getElementById('inputB').value.toLowerCase();
-                    
-                    let isOutside = textA.includes('с.') || textB.includes('с.') || textA.includes('село') || textB.includes('село') || distKm > 6;
-                    
-                    rate = isOutside ? 60 : 40;
-                    price = Math.max(60, Math.round(distKm * rate));
-                    distanceStr = `${distKm} км`;
-                    durationStr = `~${durationMin} хв у дорозі`;
-
-                    document.getElementById('priceDisplay').innerText = `${price} грн`;
-                    document.getElementById('distDisplay').innerText = `${distKm} км (${rate} грн/км)`;
-                    document.getElementById('timeDisplay').innerText = durationStr;
-                    return;
+                    routeSuccess = true;
                 }
-            } catch(e){}
+            } catch(e) {
+                // Сервер маршрутів не відповів через поганий інтернет
+            }
 
-            document.getElementById('priceDisplay').innerText = "60 грн";
+            // 2. Якщо інтернет занадто слабкий — рахуємо автономно (Offline Fallback)
+            if (!routeSuccess) {
+                distKm = getHaversineDistance(posA.lat, posA.lng, posB.lat, posB.lng);
+                durationMin = Math.max(4, Math.round(distKm * 2)); // орієнтовно ~30 км/год
+
+                if(routePolyline) map.removeLayer(routePolyline);
+                routePolyline = L.polyline([[posA.lat, posA.lng], [posB.lat, posB.lng]], {color: '#ffcc00', weight: 4, dashArray: '8, 8', opacity: 0.8}).addTo(map);
+                map.fitBounds(routePolyline.getBounds(), {padding: [30, 30]});
+            }
+
+            // Розрахунок тарифу
+            let textA = document.getElementById('inputA').value.toLowerCase();
+            let textB = document.getElementById('inputB').value.toLowerCase();
+            
+            let isOutside = textA.includes('с.') || textB.includes('с.') || textA.includes('село') || textB.includes('село') || distKm > 6;
+            
+            rate = isOutside ? 60 : 40;
+            price = Math.max(60, Math.round(distKm * rate));
+            distanceStr = `${distKm} км`;
+            durationStr = `~${durationMin} хв у дорозі`;
+
+            document.getElementById('priceDisplay').innerText = `${price} грн`;
+            document.getElementById('distDisplay').innerText = `${distKm} км (${rate} грн/км)`;
+            document.getElementById('timeDisplay').innerText = durationStr;
         }
 
         async function selectShortcut(placeName) {
+            hideKeyboard();
             let type = activePoint;
             let searchQuery = placeName.includes('Миронівка') ? placeName : `${placeName}, Київська область`;
             try {
-                let res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}`);
+                let res = await fetchWithTimeout(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}`, { timeout: 2500 });
                 let data = await res.json();
                 if(data && data.length > 0) {
                     let lat = parseFloat(data[0].lat);
@@ -427,6 +488,7 @@
         }
 
         function useGPS() {
+            hideKeyboard();
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition((pos) => {
                     let lat = pos.coords.latitude;
@@ -438,6 +500,7 @@
         }
 
         function sendOrder() {
+            hideKeyboard();
             let addrA = document.getElementById('inputA').value.trim() || "Обрано на карті";
             let addrB = document.getElementById('inputB').value.trim() || "Обрано на карті";
             let comment = document.getElementById('comment').value.trim() || "Немає";
