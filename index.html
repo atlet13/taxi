@@ -9,13 +9,13 @@
         :root {
             --bg-color: #121212;
             --card-bg: #1e1e1e;
-            --accent-color: #ffcc00; /* Жовтий колір Uklon */
+            --accent-color: #ffcc00;
             --text-color: #ffffff;
             --text-muted: #aaaaaa;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
@@ -56,7 +56,7 @@
             font-weight: 600;
         }
 
-        input, select {
+        input {
             width: 100%;
             padding: 12px;
             background-color: #2a2a2a;
@@ -68,7 +68,7 @@
             margin-bottom: 10px;
         }
 
-        input:focus, select:focus {
+        input:focus {
             outline: none;
             border-color: var(--accent-color);
         }
@@ -87,23 +87,6 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
-        }
-
-        .btn-submit {
-            width: 100%;
-            padding: 15px;
-            background-color: var(--accent-color);
-            color: #000;
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: opacity 0.2s;
-        }
-
-        .btn-submit:active {
-            opacity: 0.8;
         }
 
         .quick-locations {
@@ -128,13 +111,64 @@
             background-color: var(--accent-color);
             color: #000;
         }
+
+        .price-box {
+            background-color: #2a2a2a;
+            border: 1px solid var(--accent-color);
+            border-radius: 10px;
+            padding: 14px;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .price-box .price-title {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .price-box .price-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--accent-color);
+            margin: 4px 0;
+        }
+
+        .price-box .price-details {
+            font-size: 12px;
+            color: #ccc;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 15px;
+            background-color: var(--accent-color);
+            color: #000;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .btn-calc {
+            width: 100%;
+            padding: 10px;
+            background-color: #333;
+            color: #fff;
+            border: 1px solid #555;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
 
     <div class="header">
         <h2>🚖 Таксі Миронівка</h2>
-        <p>Швидкий виклик по місту та району</p>
+        <p>Автоматичний розрахунок вартості поїздки</p>
     </div>
 
     <div class="card">
@@ -145,17 +179,18 @@
         </button>
         
         <div class="quick-locations">
-            <span class="tag" onclick="setPointA('Залізничний вокзал')">🚆 Залізничний вокзал</span>
-            <span class="tag" onclick="setPointA('Центральна лікарня')">🏥 Лікарня</span>
-            <span class="tag" onclick="setPointA('Центр / Площа')">🏛 Центр</span>
-            <span class="tag" onclick="setPointA('Ринок')">🛒 Ринок</span>
+            <span class="tag" onclick="setPointA('Миронівка, Залізничний вокзал')">🚆 Вокзал</span>
+            <span class="tag" onclick="setPointA('Миронівка, Центральна лікарня')">🏥 Лікарня</span>
+            <span class="tag" onclick="setPointA('Миронівка, Центр')">🏛 Центр</span>
+            <span class="tag" onclick="setPointA('Миронівка, Ринок')">🛒 Ринок</span>
         </div>
 
-        <input type="text" id="pointA" placeholder="Введіть вулицю та будинок у Миронівці">
+        <input type="text" id="pointA" placeholder="Наприклад: вул. Соборна 15" onchange="autoCalculate()">
 
         <!-- ТОЧКА Б -->
         <label>КУДИ (Точка Б):</label>
         <div class="quick-locations">
+            <span class="tag" onclick="setPointB('Миронівка, Лікарня')">🏥 Лікарня</span>
             <span class="tag" onclick="setPointB('Владиславка')">🏡 с. Владиславка</span>
             <span class="tag" onclick="setPointB('Карапиші')">🏡 с. Карапиші</span>
             <span class="tag" onclick="setPointB('Росава')">🏡 с. Росава</span>
@@ -163,13 +198,18 @@
             <span class="tag" onclick="setPointB('Пустовіти')">🏡 с. Пустовіти</span>
         </div>
 
-        <input type="text" id="pointB" placeholder="Введіть адресу або село району">
+        <input type="text" id="pointB" placeholder="Наприклад: с. Владиславка" onchange="autoCalculate()">
 
-        <!-- ЦІНА ТА КОМЕНТАР -->
-        <label>ЦІНА ТА ДЕТАЛІ:</label>
-        <input type="number" id="price" placeholder="Ваша ціна (наприклад, 100)">
-        
-        <input type="text" id="comment" placeholder="Коментар водію (під'їзд, з дитиною тощо)">
+        <button type="button" class="btn-calc" onclick="autoCalculate()">🔄 Розрахувати вартість</button>
+
+        <input type="text" id="comment" placeholder="Коментар водію (під'їзд, багаж тощо)">
+
+        <!-- БЛОК РАЗРАХУНКУ ВАРТОСТІ -->
+        <div class="price-box">
+            <div class="price-title">РОЗРАХОВАНА ВАРТІСТЬ:</div>
+            <div class="price-value" id="priceDisplay">0 грн</div>
+            <div class="price-details" id="priceDetails">Вкажіть точну адресу звідки та куди</div>
+        </div>
     </div>
 
     <button type="button" class="btn-submit" onclick="sendOrder()">Замовити таксі</button>
@@ -179,6 +219,9 @@
         tg.expand();
 
         let userCoords = null;
+        let calculatedPrice = 0;
+        let calculatedDistance = 0;
+        let currentRate = 40;
 
         function getGPS() {
             if (navigator.geolocation) {
@@ -188,41 +231,110 @@
                             lat: position.coords.latitude,
                             lng: position.coords.longitude
                         };
-                        document.getElementById('pointA').value = `📍 GPS визначено (${userCoords.lat.toFixed(4)}, ${userCoords.lng.toFixed(4)})`;
-                        alert("Геолокацію отримано!");
+                        document.getElementById('pointA').value = `Миронівка (GPS: ${userCoords.lat.toFixed(4)}, ${userCoords.lng.toFixed(4)})`;
+                        autoCalculate();
                     },
-                    (error) => {
-                        alert("Увімкніть геопозицію на телефоні або введіть адресу вручну.");
-                    }
+                    () => alert("Увімкніть геопозицію на телефоні або введіть адресу вручну.")
                 );
-            } else {
-                alert("Ваш пристрій не підтримує геолокацію.");
             }
         }
 
         function setPointA(val) {
             document.getElementById('pointA').value = val;
+            autoCalculate();
         }
 
         function setPointB(val) {
             document.getElementById('pointB').value = val;
+            autoCalculate();
+        }
+
+        // Геокодування адреси в координати через Nominatim
+        async function geocode(address) {
+            const query = address.toLowerCase().includes('миронівк') || address.toLowerCase().includes('с.') 
+                ? address + ", Київська область" 
+                : address + ", Миронівка, Київська область";
+
+            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`;
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                if (data && data.length > 0) {
+                    return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+                }
+            } catch (e) {
+                console.error(e);
+            }
+            return null;
+        }
+
+        // Обчислення відстані та тарифу
+        async function autoCalculate() {
+            const pointA = document.getElementById('pointA').value.trim();
+            const pointB = document.getElementById('pointB').value.trim();
+
+            if (!pointA || !pointB) return;
+
+            document.getElementById('priceDisplay').innerText = "Рахуємо...";
+
+            let coordA = userCoords;
+            if (!coordA) coordA = await geocode(pointA);
+            let coordB = await geocode(pointB);
+
+            if (!coordA || !coordB) {
+                document.getElementById('priceDisplay').innerText = "— грн";
+                document.getElementById('priceDetails').innerText = "Не вдалося уточнити геопозицію. Перевірте адреси.";
+                return;
+            }
+
+            // Розрахунок маршруту за допомогою OSRM
+            const routeUrl = `https://router.project-osrm.org/route/v1/driving/${coordA.lng},${coordA.lat};${coordB.lng},${coordB.lat}?overview=false`;
+            
+            try {
+                const response = await fetch(routeUrl);
+                const data = await response.json();
+
+                if (data.routes && data.routes.length > 0) {
+                    const distanceMeters = data.routes[0].distance;
+                    calculatedDistance = (distanceMeters / 1000).toFixed(1);
+
+                    // Перевірка чи поїздка за межі Миронівки
+                    const isOutside = pointB.toLowerCase().includes('с.') || 
+                                      pointB.toLowerCase().includes('село') || 
+                                      calculatedDistance > 7;
+
+                    currentRate = isOutside ? 60 : 40;
+                    calculatedPrice = Math.round(calculatedDistance * currentRate);
+
+                    // Мінімальна вартість поїздки по місту 50 грн
+                    if (calculatedPrice < 50) calculatedPrice = 50;
+
+                    document.getElementById('priceDisplay').innerText = `${calculatedPrice} грн`;
+                    document.getElementById('priceDetails').innerText = 
+                        `Відстань: ${calculatedDistance} км | Тариф: ${currentRate} грн/км (${isOutside ? 'За місто' : 'По місту'})`;
+                }
+            } catch (e) {
+                document.getElementById('priceDisplay').innerText = "Помилка";
+                document.getElementById('priceDetails').innerText = "Спробуйте натиснути 'Розрахувати вартість' ще раз";
+            }
         }
 
         function sendOrder() {
             const pointA = document.getElementById('pointA').value;
             const pointB = document.getElementById('pointB').value;
-            const price = document.getElementById('price').value;
             const comment = document.getElementById('comment').value;
 
-            if (!pointA || !pointB || !price) {
-                alert("Будь ласка, вкажіть звідки, куди та ціну!");
+            if (!pointA || !pointB || calculatedPrice === 0) {
+                alert("Будь ласка, вкажіть звідки та куди, щоб розрахувати вартість!");
                 return;
             }
 
             const payload = {
                 pointA: pointA,
                 pointB: pointB,
-                price: price,
+                price: calculatedPrice,
+                distance: calculatedDistance,
+                rate: currentRate,
                 comment: comment || "Немає",
                 coords: userCoords
             };
