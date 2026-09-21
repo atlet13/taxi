@@ -3,38 +3,176 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Замовлення Таксі</title>
+    <title>Таксі Миронівка</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { font-family: sans-serif; padding: 20px; background-color: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #000); }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; font-weight: bold; margin-bottom: 5px; }
-        input { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 8px; }
-        button { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        .btn-gps { background-color: #28a745; color: white; margin-bottom: 10px; }
-        .btn-submit { background-color: #0088cc; color: white; }
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --accent-color: #ffcc00; /* Жовтий колір Uklon */
+            --text-color: #ffffff;
+            --text-muted: #aaaaaa;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 16px;
+            box-sizing: border-box;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header h2 {
+            margin: 0;
+            color: var(--accent-color);
+            font-size: 22px;
+        }
+
+        .header p {
+            margin: 5px 0 0 0;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            background-color: #2a2a2a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 15px;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        .btn-gps {
+            width: 100%;
+            padding: 10px;
+            background-color: #2a2a2a;
+            border: 1px dashed var(--accent-color);
+            color: var(--accent-color);
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 15px;
+            background-color: var(--accent-color);
+            color: #000;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .btn-submit:active {
+            opacity: 0.8;
+        }
+
+        .quick-locations {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+        }
+
+        .tag {
+            background-color: #333;
+            color: #ccc;
+            padding: 6px 10px;
+            border-radius: 16px;
+            font-size: 12px;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+        .tag:active {
+            background-color: var(--accent-color);
+            color: #000;
+        }
     </style>
 </head>
 <body>
-    <h2>🚕 Замовлення таксі</h2>
-    
-    <div class="form-group">
-        <label>Точка А (Звідки):</label>
-        <button type="button" class="btn-gps" onclick="getGPS()">📍 Вказати точну геопозицію (GPS)</button>
-        <input type="text" id="pointA" placeholder="Введіть адресу або натисніть кнопку вище">
+
+    <div class="header">
+        <h2>🚖 Таксі Миронівка</h2>
+        <p>Швидкий виклик по місту та району</p>
     </div>
 
-    <div class="form-group">
-        <label>Точка Б (Куди):</label>
-        <input type="text" id="pointB" placeholder="Введіть адресу призначення">
+    <div class="card">
+        <!-- ТОЧКА А -->
+        <label>ЗВІДКИ (Точка А):</label>
+        <button type="button" class="btn-gps" onclick="getGPS()">
+            📍 Точна геолокація (GPS)
+        </button>
+        
+        <div class="quick-locations">
+            <span class="tag" onclick="setPointA('Залізничний вокзал')">🚆 Залізничний вокзал</span>
+            <span class="tag" onclick="setPointA('Центральна лікарня')">🏥 Лікарня</span>
+            <span class="tag" onclick="setPointA('Центр / Площа')">🏛 Центр</span>
+            <span class="tag" onclick="setPointA('Ринок')">🛒 Ринок</span>
+        </div>
+
+        <input type="text" id="pointA" placeholder="Введіть вулицю та будинок у Миронівці">
+
+        <!-- ТОЧКА Б -->
+        <label>КУДИ (Точка Б):</label>
+        <div class="quick-locations">
+            <span class="tag" onclick="setPointB('Владиславка')">🏡 с. Владиславка</span>
+            <span class="tag" onclick="setPointB('Карапиші')">🏡 с. Карапиші</span>
+            <span class="tag" onclick="setPointB('Росава')">🏡 с. Росава</span>
+            <span class="tag" onclick="setPointB('Яхни')">🏡 с. Яхни</span>
+            <span class="tag" onclick="setPointB('Пустовіти')">🏡 с. Пустовіти</span>
+        </div>
+
+        <input type="text" id="pointB" placeholder="Введіть адресу або село району">
+
+        <!-- ЦІНА ТА КОМЕНТАР -->
+        <label>ЦІНА ТА ДЕТАЛІ:</label>
+        <input type="number" id="price" placeholder="Ваша ціна (наприклад, 100)">
+        
+        <input type="text" id="comment" placeholder="Коментар водію (під'їзд, з дитиною тощо)">
     </div>
 
-    <div class="form-group">
-        <label>Ваша ціна (грн):</label>
-        <input type="number" id="price" placeholder="Наприклад: 150">
-    </div>
-
-    <button type="button" class="btn-submit" onclick="sendOrder()">Замовити</button>
+    <button type="button" class="btn-submit" onclick="sendOrder()">Замовити таксі</button>
 
     <script>
         let tg = window.Telegram.WebApp;
@@ -50,11 +188,11 @@
                             lat: position.coords.latitude,
                             lng: position.coords.longitude
                         };
-                        document.getElementById('pointA').value = `GPS: ${userCoords.lat.toFixed(5)}, ${userCoords.lng.toFixed(5)}`;
-                        alert("Геопозицію успішно визначено!");
+                        document.getElementById('pointA').value = `📍 GPS визначено (${userCoords.lat.toFixed(4)}, ${userCoords.lng.toFixed(4)})`;
+                        alert("Геолокацію отримано!");
                     },
                     (error) => {
-                        alert("Не вдалося отримати GPS. Введіть адресу вручну.");
+                        alert("Увімкніть геопозицію на телефоні або введіть адресу вручну.");
                     }
                 );
             } else {
@@ -62,13 +200,22 @@
             }
         }
 
+        function setPointA(val) {
+            document.getElementById('pointA').value = val;
+        }
+
+        function setPointB(val) {
+            document.getElementById('pointB').value = val;
+        }
+
         function sendOrder() {
             const pointA = document.getElementById('pointA').value;
             const pointB = document.getElementById('pointB').value;
             const price = document.getElementById('price').value;
+            const comment = document.getElementById('comment').value;
 
             if (!pointA || !pointB || !price) {
-                alert("Будь ласка, заповніть всі поля!");
+                alert("Будь ласка, вкажіть звідки, куди та ціну!");
                 return;
             }
 
@@ -76,6 +223,7 @@
                 pointA: pointA,
                 pointB: pointB,
                 price: price,
+                comment: comment || "Немає",
                 coords: userCoords
             };
 
