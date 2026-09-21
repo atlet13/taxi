@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Таксі Миронівка та Район</title>
+    <title>Таксі Миронівка</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     
     <!-- Leaflet CSS & JS -->
@@ -15,8 +15,8 @@
         body, html { height: 100%; width: 100%; overflow: hidden; background: #121212; color: #fff; }
 
         /* Контейнер карти */
-        #map-container { position: relative; width: 100%; height: 44vh; background: #1a1a1a; }
-        #map { width: 100%; height: 100%; background: #1a1a1a; }
+        #map-container { position: relative; width: 100%; height: 46vh; background: #e5e3df; }
+        #map { width: 100%; height: 100%; }
 
         /* Кнопка GPS на карті */
         .map-gps-btn {
@@ -24,28 +24,29 @@
             bottom: 15px;
             right: 15px;
             z-index: 1000;
-            background: #1e1e1e;
-            border: 1px solid #ffcc00;
-            color: #ffcc00;
-            width: 44px;
-            height: 44px;
+            background: #ffffff;
+            border: 2px solid #28a745;
+            color: #28a745;
+            width: 48px;
+            height: 48px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 20px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            font-size: 22px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.35);
             cursor: pointer;
+            transition: transform 0.1s, background 0.2s;
         }
-        .map-gps-btn:active { transform: scale(0.92); }
+        .map-gps-btn:active { transform: scale(0.92); background: #f0f0f0; }
 
         /* Панель керування */
         .panel {
-            height: 56vh;
+            height: 54vh;
             background: #1e1e1e;
-            padding: 14px;
-            border-top-left-radius: 22px;
-            border-top-right-radius: 22px;
+            padding: 12px 14px;
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
             box-shadow: 0 -6px 20px rgba(0,0,0,0.6);
             display: flex;
             flex-direction: column;
@@ -54,13 +55,13 @@
             z-index: 1001;
         }
 
-        /* Горизонтальні шорткати */
+        /* Шорткати */
         .shortcuts {
             display: flex;
             gap: 8px;
             overflow-x: auto;
             padding-bottom: 6px;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
             scrollbar-width: none;
         }
         .shortcuts::-webkit-scrollbar { display: none; }
@@ -73,99 +74,93 @@
             font-size: 12px;
             white-space: nowrap;
             cursor: pointer;
-            transition: all 0.2s;
         }
         .chip:active { background: #ffcc00; color: #000; font-weight: bold; }
 
         /* Поля введення */
-        .input-group { margin-bottom: 8px; position: relative; }
-        .input-group label { font-size: 10px; color: #888; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; }
+        .input-group { margin-bottom: 6px; position: relative; }
+        .input-group label { font-size: 10px; color: #aaa; font-weight: bold; text-transform: uppercase; }
 
         .input-box {
             display: flex;
             align-items: center;
             background: #282828;
             border: 1.5px solid #383838;
-            border-radius: 12px;
-            padding: 9px 12px;
-            margin-top: 3px;
-            transition: border-color 0.2s;
+            border-radius: 10px;
+            padding: 8px 10px;
+            margin-top: 2px;
         }
-        .input-box.active { border-color: #ffcc00; background: #2f2f2f; }
+        .input-box.active { border-color: #ffcc00; background: #2e2e2e; }
 
         .input-box input {
             background: transparent;
             border: none;
             color: #fff;
             width: 100%;
-            font-size: 14px;
+            font-size: 13.5px;
             outline: none;
         }
 
-        .dot { width: 10px; height: 10px; border-radius: 50%; margin-right: 10px; flex-shrink: 0; }
-        .dot-a { background: #28a745; box-shadow: 0 0 8px rgba(40, 167, 69, 0.6); }
-        .dot-b { background: #dc3545; box-shadow: 0 0 8px rgba(220, 53, 69, 0.6); }
+        .dot { width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; flex-shrink: 0; }
+        .dot-a { background: #28a745; box-shadow: 0 0 6px rgba(40, 167, 69, 0.8); }
+        .dot-b { background: #dc3545; box-shadow: 0 0 6px rgba(220, 53, 69, 0.8); }
 
-        /* Автопідказки адрес */
+        /* Підказки */
         .suggestions {
             position: absolute;
             top: 100%;
-            left: 0;
-            right: 0;
+            left: 0; right: 0;
             background: #282828;
             border: 1px solid #ffcc00;
-            border-radius: 10px;
-            max-height: 150px;
+            border-radius: 8px;
+            max-height: 140px;
             overflow-y: auto;
             z-index: 2500;
-            box-shadow: 0 6px 16px rgba(0,0,0,0.7);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.8);
             display: none;
         }
         .suggestion-item {
-            padding: 10px 12px;
-            font-size: 13px;
+            padding: 9px 11px;
+            font-size: 12.5px;
             border-bottom: 1px solid #353535;
             cursor: pointer;
             color: #eee;
-            line-height: 1.3;
         }
-        .suggestion-item:last-child { border-bottom: none; }
-        .suggestion-item:hover, .suggestion-item:active { background: #383838; color: #ffcc00; }
+        .suggestion-item:active { background: #383838; color: #ffcc00; }
 
         /* Картка ціни */
         .price-card {
-            background: linear-gradient(135deg, #2a2a2a 0%, #222222 100%);
+            background: #252525;
             border: 1px solid #ffcc00;
-            border-radius: 14px;
-            padding: 10px 14px;
+            border-radius: 12px;
+            padding: 8px 12px;
             display: flex;
             align-items: center;
             justify-content: space-between;
         }
-        .price-main { font-size: 24px; font-weight: 800; color: #ffcc00; }
+        .price-main { font-size: 22px; font-weight: 800; color: #ffcc00; }
         .price-info { text-align: right; }
-        .info-dist { font-size: 13px; font-weight: bold; color: #fff; }
-        .info-time { font-size: 11px; color: #aaa; margin-top: 2px; }
+        .info-dist { font-size: 12.5px; font-weight: bold; color: #fff; }
+        .info-time { font-size: 11px; color: #aaa; }
 
         .comment-input {
             width: 100%; background: #282828; border: 1px solid #383838; color: #fff;
-            padding: 9px 12px; border-radius: 10px; outline: none; font-size: 13px; margin-top: 6px;
+            padding: 8px 10px; border-radius: 8px; outline: none; font-size: 12.5px; margin-top: 4px;
         }
 
         .btn-order {
-            background: #ffcc00; color: #000; font-size: 16px; font-weight: 700;
-            padding: 14px; border: none; border-radius: 12px; width: 100%; cursor: pointer;
-            box-shadow: 0 4px 15px rgba(255, 204, 0, 0.3);
-            transition: background 0.2s;
+            background: #ffcc00; color: #000; font-size: 15px; font-weight: 700;
+            padding: 12px; border: none; border-radius: 10px; width: 100%; cursor: pointer;
+            box-shadow: 0 4px 12px rgba(255, 204, 0, 0.3);
         }
-        .btn-order:active { background: #e6b800; transform: scale(0.99); }
+        .btn-order:active { background: #e6b800; }
     </style>
 </head>
 <body>
 
     <div id="map-container">
         <div id="map"></div>
-        <button class="map-gps-btn" onclick="useGPS()" title="Моє місцезнаходження">🎯</button>
+        <button class="map-gps-btn" onclick="useGPS()" title="Моя точна геопозиція">🎯</button>
     </div>
 
     <div class="panel">
@@ -185,7 +180,7 @@
                 <label>1. Звідки (Точка А)</label>
                 <div class="input-box active" id="boxA" onclick="setActivePoint('A')">
                     <div class="dot dot-a"></div>
-                    <input type="text" id="inputA" placeholder="Оберіть на карті або введіть вулицю / село" oninput="onTyping('A')" onkeydown="if(event.key==='Enter') hideKeyboard()" autocomplete="off">
+                    <input type="text" id="inputA" placeholder="Клацніть на карту або введіть вулицю" oninput="onTyping('A')" onkeydown="if(event.key==='Enter') hideKeyboard()" autocomplete="off">
                 </div>
                 <div id="sugA" class="suggestions"></div>
             </div>
@@ -195,19 +190,19 @@
                 <label>2. Куди (Точка Б)</label>
                 <div class="input-box" id="boxB" onclick="setActivePoint('B')">
                     <div class="dot dot-b"></div>
-                    <input type="text" id="inputB" placeholder="Оберіть на карті або введіть вулицю / село" oninput="onTyping('B')" onkeydown="if(event.key==='Enter') hideKeyboard()" autocomplete="off">
+                    <input type="text" id="inputB" placeholder="Клацніть на карту або введіть вулицю" oninput="onTyping('B')" onkeydown="if(event.key==='Enter') hideKeyboard()" autocomplete="off">
                 </div>
                 <div id="sugB" class="suggestions"></div>
             </div>
 
-            <input type="text" id="comment" class="comment-input" placeholder="Коментар водію (напр. 2 під'їзд, з дитиною)" onkeydown="if(event.key==='Enter') hideKeyboard()">
+            <input type="text" id="comment" class="comment-input" placeholder="Коментар (під'їзд, підганяти зараз тощо)" onkeydown="if(event.key==='Enter') hideKeyboard()">
         </div>
 
         <div class="price-card">
             <div class="price-main" id="priceDisplay">60 грн</div>
             <div class="price-info">
                 <div class="info-dist" id="distDisplay">По місту / району</div>
-                <div class="info-time" id="timeDisplay">Вкажіть маршрут</div>
+                <div class="info-time" id="timeDisplay">Оберіть 2 точки</div>
             </div>
         </div>
 
@@ -221,16 +216,27 @@
         const defaultLat = 49.6581;
         const defaultLng = 30.9926;
 
-        let map = L.map('map', { zoomControl: false }).setView([defaultLat, defaultLng], 13);
+        // Ініціалізація карти з виправленням сенсорних багів
+        let map = L.map('map', { 
+            zoomControl: true,
+            tap: false 
+        }).setView([defaultLat, defaultLng], 14);
 
-        // Головне джерело карти
-        let tileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        // ЧІТКА ДЕТАЛЬНА КАРТА OpenStreetMap (з будинками та вулицями)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
-            subdomains: 'abcd'
+            attribution: '&copy; OpenStreetMap',
+            keepBuffer: 3
         }).addTo(map);
+
+        // Автовиправлення розмірів карти при запуску
+        setTimeout(() => { map.invalidateSize(); }, 300);
+        window.addEventListener('resize', () => map.invalidateSize());
 
         let markerA = null;
         let markerB = null;
+        let gpsMarker = null;
+        let gpsAccuracyCircle = null;
         let routePolyline = null;
         let activePoint = 'A';
 
@@ -240,6 +246,7 @@
         let rate = 40;
         let typingTimer;
 
+        // Маркери
         const iconA = L.icon({
             iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
             shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
@@ -252,20 +259,12 @@
             iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
         });
 
-        // ПРИМУСОВЕ ЗАКРИТТЯ КЛАВІАТУРИ
         function hideKeyboard() {
             if (document.activeElement && typeof document.activeElement.blur === 'function') {
                 document.activeElement.blur();
             }
         }
 
-        document.addEventListener('touchstart', function(e) {
-            if (!['INPUT', 'TEXTAREA'].includes(e.target.tagName)) {
-                hideKeyboard();
-            }
-        }, { passive: true });
-
-        // Мережевий запит з таймаутом для поганого інтернету
         async function fetchWithTimeout(resource, options = {}) {
             const { timeout = 3000 } = options;
             const controller = new AbortController();
@@ -280,7 +279,6 @@
             }
         }
 
-        // Обчислення прямої відстані за формулою гаверсинусів (Offline Fallback)
         function getHaversineDistance(lat1, lon1, lat2, lon2) {
             const R = 6371;
             const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -289,7 +287,7 @@
                       Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
                       Math.sin(dLon/2) * Math.sin(dLon/2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return (R * c * 1.35).toFixed(1); // Коефіцієнт 1.35 для реальних вигинів доріг
+            return (R * c * 1.35).toFixed(1);
         }
 
         function setActivePoint(pt) {
@@ -337,7 +335,7 @@
 
         async function reverseGeo(lat, lng) {
             try {
-                let res = await fetchWithTimeout(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`, { timeout: 2500 });
+                let res = await fetchWithTimeout(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=uk`, { timeout: 2500 });
                 let data = await res.json();
                 if(data && data.address) {
                     let village = data.address.village || data.address.town || data.address.city || "";
@@ -346,7 +344,7 @@
                     
                     let parts = [];
                     if(village && village !== "Миронівка") parts.push(`с. ${village}`);
-                    if(road) parts.push(`${road} ${house}`.trim());
+                    if(road) parts.push(house ? `${road}, ${house}` : road);
                     if(parts.length > 0) return parts.join(', ');
                 }
             } catch(e){}
@@ -359,7 +357,7 @@
                 let val = type === 'A' ? document.getElementById('inputA').value.trim() : document.getElementById('inputB').value.trim();
                 if(val.length < 2) return hideSuggestions();
                 fetchSuggestions(type, val);
-            }, 350);
+            }, 300);
         }
 
         async function fetchSuggestions(type, query) {
@@ -370,7 +368,7 @@
 
             try {
                 let viewbox = '30.60,49.82,31.30,49.48';
-                let res = await fetchWithTimeout(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&viewbox=${viewbox}&limit=5`, { timeout: 2500 });
+                let res = await fetchWithTimeout(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&viewbox=${viewbox}&accept-language=uk&limit=5`, { timeout: 2500 });
                 let data = await res.json();
                 let sugBox = document.getElementById(type === 'A' ? 'sugA' : 'sugB');
                 sugBox.innerHTML = '';
@@ -380,10 +378,7 @@
                     data.forEach(item => {
                         let div = document.createElement('div');
                         div.className = 'suggestion-item';
-                        
-                        let parts = item.display_name.split(',');
-                        let cleanName = parts.slice(0, 3).join(',').trim();
-
+                        let cleanName = item.display_name.split(',').slice(0, 3).join(',').trim();
                         div.innerText = cleanName;
                         div.onclick = () => {
                             hideKeyboard();
@@ -424,7 +419,6 @@
             let durationMin = 0;
             let routeSuccess = false;
 
-            // 1. Пробуємо побудувати точний маршрут через онлайн API з таймаутом 3 секунди
             try {
                 let res = await fetchWithTimeout(`https://router.project-osrm.org/route/v1/driving/${posA.lng},${posA.lat};${posB.lng},${posB.lat}?overview=full&geometries=geojson`, { timeout: 3000 });
                 let data = await res.json();
@@ -435,28 +429,23 @@
 
                     if(routePolyline) map.removeLayer(routePolyline);
                     let coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
-                    routePolyline = L.polyline(coords, {color: '#ffcc00', weight: 5, opacity: 0.9, lineCap: 'round'}).addTo(map);
-                    map.fitBounds(routePolyline.getBounds(), {padding: [30, 30]});
+                    routePolyline = L.polyline(coords, {color: '#007aff', weight: 5, opacity: 0.85, lineCap: 'round'}).addTo(map);
+                    map.fitBounds(routePolyline.getBounds(), {padding: [35, 35]});
                     routeSuccess = true;
                 }
-            } catch(e) {
-                // Сервер маршрутів не відповів через поганий інтернет
-            }
+            } catch(e){}
 
-            // 2. Якщо інтернет занадто слабкий — рахуємо автономно (Offline Fallback)
             if (!routeSuccess) {
                 distKm = getHaversineDistance(posA.lat, posA.lng, posB.lat, posB.lng);
-                durationMin = Math.max(4, Math.round(distKm * 2)); // орієнтовно ~30 км/год
+                durationMin = Math.max(4, Math.round(distKm * 2));
 
                 if(routePolyline) map.removeLayer(routePolyline);
-                routePolyline = L.polyline([[posA.lat, posA.lng], [posB.lat, posB.lng]], {color: '#ffcc00', weight: 4, dashArray: '8, 8', opacity: 0.8}).addTo(map);
-                map.fitBounds(routePolyline.getBounds(), {padding: [30, 30]});
+                routePolyline = L.polyline([[posA.lat, posA.lng], [posB.lat, posB.lng]], {color: '#007aff', weight: 4, dashArray: '8, 8', opacity: 0.8}).addTo(map);
+                map.fitBounds(routePolyline.getBounds(), {padding: [35, 35]});
             }
 
-            // Розрахунок тарифу
             let textA = document.getElementById('inputA').value.toLowerCase();
             let textB = document.getElementById('inputB').value.toLowerCase();
-            
             let isOutside = textA.includes('с.') || textB.includes('с.') || textA.includes('село') || textB.includes('село') || distKm > 6;
             
             rate = isOutside ? 60 : 40;
@@ -474,7 +463,7 @@
             let type = activePoint;
             let searchQuery = placeName.includes('Миронівка') ? placeName : `${placeName}, Київська область`;
             try {
-                let res = await fetchWithTimeout(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}`, { timeout: 2500 });
+                let res = await fetchWithTimeout(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&accept-language=uk`, { timeout: 2500 });
                 let data = await res.json();
                 if(data && data.length > 0) {
                     let lat = parseFloat(data[0].lat);
@@ -482,21 +471,51 @@
                     if(type === 'A') document.getElementById('inputA').value = placeName;
                     else document.getElementById('inputB').value = placeName;
                     setPoint(type, lat, lng, false);
-                    map.flyTo([lat, lng], 14);
+                    map.flyTo([lat, lng], 15);
                 }
             } catch(e){}
         }
 
+        // НАЙТОЧНІША ГЕОЛОКАЦІЯ
         function useGPS() {
             hideKeyboard();
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition((pos) => {
+            if (!navigator.geolocation) {
+                alert("Ваш пристрій не підтримує геолокацію");
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                async (pos) => {
                     let lat = pos.coords.latitude;
                     let lng = pos.coords.longitude;
-                    map.flyTo([lat, lng], 15);
-                    setPoint('A', lat, lng, true);
-                }, () => alert("Увімкніть GPS у налаштуваннях телефону"));
-            }
+                    let accuracy = pos.coords.accuracy; // Точність у метрах
+
+                    // Відображення кола точності GPS
+                    if (gpsAccuracyCircle) map.removeLayer(gpsAccuracyCircle);
+                    gpsAccuracyCircle = L.circle([lat, lng], {
+                        radius: accuracy,
+                        color: '#007aff',
+                        fillColor: '#007aff',
+                        fillOpacity: 0.12,
+                        weight: 1
+                    }).addTo(map);
+
+                    map.flyTo([lat, lng], 16, { animate: true, duration: 1 });
+                    await setPoint('A', lat, lng, true);
+                },
+                (err) => {
+                    let msg = "Не вдалося отримати точну геолокацію.";
+                    if (err.code === 1) msg = "Дозвольте доступ до геолокації у налаштуваннях вашого телефону / Telegram.";
+                    else if (err.code === 2) msg = "GPS недоступний. Перевірте, чи увімкнена геопозиція у підшторці смартфона.";
+                    else if (err.code === 3) msg = "Час очікування GPS вичерпано. Спробуйте ще раз на відкритому просторі.";
+                    alert(msg);
+                },
+                {
+                    enableHighAccuracy: true, // Вмикає супутниковий GPS модуль
+                    timeout: 10000,           // 10 секунд чекаємо супутники
+                    maximumAge: 0             // Не використовувати застарілий кеш
+                }
+            );
         }
 
         function sendOrder() {
@@ -524,7 +543,7 @@
                 tg.sendData(JSON.stringify(payload));
                 tg.close();
             } catch(e) {
-                alert("Будь ласка, відкрийте форму через кнопку «🚕 Замовити таксі» внизу чату.");
+                alert("Будь ласка, відкривайте форму через кнопку у боті Telegram.");
             }
         }
     </script>
